@@ -1,0 +1,73 @@
+# CoReOS Master Configuration File
+# Conflict-Aware, Self-Healing Multi-Agent AI Operating System Resource Manager
+
+dataset:
+  raw_path: "data/raw/Big_data_dataset.csv"
+  fallback_path: "data/Big_data_dataset.csv"
+  processed_dir: "data/processed"
+  expected_features:
+    - "cpu_utilization"
+    - "memory_usage"
+    - "disk_io"
+    - "network_latency"
+    - "process_count"
+    - "thread_count"
+    - "context_switches"
+    - "cache_miss_rate"
+    - "temperature"
+    - "power_consumption"
+    - "uptime"
+  target_column: "status"
+
+simulation:
+  random_seed: 42
+  total_time_units: 500
+  cpu_cores: 4
+  context_switch_penalty: 0.5   # Time units penalty per context switch
+  default_quantum: 4.0          # Round Robin time quantum
+  
+  # Memory subsystem
+  total_memory_mb: 16384.0      # 16 GB simulated RAM
+  page_size_kb: 4
+  swap_capacity_mb: 8192.0       # 8 GB swap space
+  page_fault_cost: 5.0          # Time penalty for page fault (disk access)
+  memory_pressure_threshold: 0.85 # 85% utilization triggers pressure
+  
+  # I/O subsystem
+  io_channels: 2
+  base_io_latency: 3.0          # Average I/O service time
+  io_queue_capacity: 50
+  io_bandwidth_mb_per_s: 250.0
+
+conflict_prediction:
+  thrashing_threshold: 0.88
+  io_saturation_threshold: 0.80
+  confidence_threshold: 0.65
+  use_ml_model: true
+  model_type: "gradient_boosting"
+
+self_healing:
+  regression_window_size: 20
+  throughput_drop_threshold: 0.25   # 25% drop relative to rolling window
+  turnaround_spike_threshold: 0.35   # 35% increase in turnaround
+  patience_steps: 3                  # Consecutive steps before triggering healing
+  cooling_off_period: 5              # Steps between corrective actions to avoid flapping
+  max_recovery_attempts: 5
+  enable_feedback_adjustment: true
+
+evaluation:
+  baselines:
+    - "A_Conventional"
+    - "B_IndependentAgents"
+    - "C_CoordNoConflict"
+    - "D_ConflictNoHealing"
+    - "E_CompleteCoReOS"
+    - "F_LearningRL"
+  workloads:
+    - "steady_state"
+    - "cpu_spike"
+    - "memory_thrashing"
+    - "io_bottleneck"
+    - "adversarial_stress"
+  default_seeds: [42, 101, 202]
+  reports_dir: "reports"
