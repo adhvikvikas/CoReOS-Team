@@ -77,7 +77,7 @@ class SystemStateStore:
         self.workload_info: Dict[str, Any] = {
             "run_id": 1,
             "workload_type": "adversarial_stress",
-            "policy_mode": "Complete CoReOS",
+            "policy_mode": "CoReOS",
             "num_processes": 40,
             "seed": 42,
             "sim_quantum": 4.0,
@@ -95,7 +95,7 @@ class SystemStateStore:
         self.run_and_record_simulation(
             workload_type="adversarial_stress",
             num_processes=40,
-            policy_mode="Complete CoReOS",
+            policy_mode="CoReOS",
             seed=42,
             sim_quantum=4.0
         )
@@ -117,21 +117,55 @@ class SystemStateStore:
         # Normalize workload type to handle case insensitivity (e.g. CPU_spike -> cpu_spike)
         workload_type = workload_type.lower().strip()
         self._run_counter += 1
+        self._initialized = True
         run_id = self._run_counter
 
         sim = SystemSimulator()
         gen = WorkloadGenerator(seed=seed)
         procs = gen.generate_workload(num_processes=num_processes, workload_type=workload_type)
         sim.reset(procs)
-
-        cpu_ag = CPUAgent(default_quantum=sim_quantum)
         mem_ag = MemoryAgent()
-        io_ag = IOAgent()
-        conflict_engine = ConflictEngine(use_ml=True)
-        enable_cp = (policy_mode in ["Complete CoReOS"])
-        coord_ag = CoordinationAgent(conflict_engine, enable_conflict_prediction=enable_cp)
+
+        is_champion = ("Champion" in policy_mode or policy_mode == "CoReOS")
+        is_improved_rl = ("Improved RL" in policy_mode or "Adaptive RL" in policy_mode)
+        gym_env = None
+        rl_agent = None
+
+        if is_champion:
+            from src.coreos.optimization.candidates import (
+                WorkloadAwareCPUAgent,
+                WorkloadAwareIOAgent,
+                AdaptiveCoordinationAgent,
+                CalibratedConflictEngine,
+                ProportionalRecoveryEngine
+            )
+            cpu_ag = WorkloadAwareCPUAgent(default_quantum=sim_quantum)
+            io_ag = WorkloadAwareIOAgent()
+            conflict_engine = CalibratedConflictEngine(use_ml=True)
+            coord_ag = AdaptiveCoordinationAgent(conflict_engine, enable_conflict_prediction=True)
+            recovery = ProportionalRecoveryEngine()
+        elif is_improved_rl:
+            from src.coreos.learning.adaptive_rl import AdaptiveRLAgent, AdaptiveCoReOSGymEnv
+            if not hasattr(self, "_adaptive_rl_agent") or self._adaptive_rl_agent is None:
+                self._adaptive_rl_agent = AdaptiveRLAgent()
+                train_env = AdaptiveCoReOSGymEnv(max_steps=150)
+                self._adaptive_rl_agent.train_curriculum(train_env, episodes_per_workload=20, base_seed=4000)
+            rl_agent = self._adaptive_rl_agent
+            gym_env = AdaptiveCoReOSGymEnv(simulator=sim)
+            cpu_ag = CPUAgent(default_quantum=sim_quantum)
+            io_ag = IOAgent()
+            conflict_engine = ConflictEngine(use_ml=True)
+            coord_ag = CoordinationAgent(conflict_engine, enable_conflict_prediction=False)
+            recovery = RecoveryEngine()
+        else:
+            cpu_ag = CPUAgent(default_quantum=sim_quantum)
+            io_ag = IOAgent()
+            conflict_engine = ConflictEngine(use_ml=True)
+            enable_cp = (policy_mode in ["Complete CoReOS"])
+            coord_ag = CoordinationAgent(conflict_engine, enable_conflict_prediction=enable_cp)
+            recovery = RecoveryEngine()
+
         detector = PerformanceRegressionDetector()
-        recovery = RecoveryEngine()
         feedback = FeedbackMechanism(conflict_engine)
 
         detected_conflicts: List[Dict[str, Any]] = []
@@ -150,6 +184,35 @@ class SystemStateStore:
         while not sim.is_done() and step_i < 250:
             state = sim.get_system_state()
             t0 = time.perf_counter()
+
+            if is_improved_rl and gym_env and rl_agent:
+                d_state = gym_env.discretize_state(state)
+                action = rl_agent.select_action(d_state, evaluate=True)
+                action_params = gym_env.ACTION_MAP.get(action, gym_env.ACTION_MAP[0])
+                total_decision_time += (time.perf_counter() - t0)
+
+                recorded_agent_decisions.append({
+                    "step": step_i,
+                    "time": round(state.get("time", float(step_i)), 1),
+                    "cpu_proposed_quantum": action_params["cpu_quantum"],
+                    "cpu_reason": f"Improved RL Policy Action {action} ({action_params['cpu_policy']})",
+                    "coordinated_quantum": action_params["cpu_quantum"],
+                    "mem_reclaim_target": action_params["memory_reclaim_target"],
+                    "io_policy": action_params["io_policy"],
+                    "conflict_type": "None",
+                    "arbitration_applied": False,
+                    "explanation": f"Discretized State {d_state} -> Action {action}: {action_params['cpu_policy']} (quantum={action_params['cpu_quantum']}, mem={action_params['memory_reclaim_target']:.0f}MB, io={action_params['io_policy']})"
+                })
+
+                sim.step(
+                    dt=1.0,
+                    cpu_policy=action_params["cpu_policy"],
+                    cpu_quantum=action_params["cpu_quantum"],
+                    io_policy=action_params["io_policy"],
+                    memory_reclaim_target=action_params["memory_reclaim_target"]
+                )
+                step_i += 1
+                continue
 
             if policy_mode == "Conventional (Static RR)":
                 recorded_agent_decisions.append({
@@ -204,9 +267,9 @@ class SystemStateStore:
             }
             decision, pred = coord_ag.coordinate(state, props)
 
-            # Self-healing if Complete CoReOS
+            # Self-healing if CoReOS, Complete CoReOS or Champion CoReOS
             triggered_healing_id = None
-            if policy_mode == "Complete CoReOS":
+            if policy_mode in ["CoReOS", "Complete CoReOS", "Champion CoReOS (Optimized)", "Champion CoReOS"] or is_champion:
                 reg = detector.observe_and_detect(state)
                 detector.record_decision(decision)
                 if reg:
@@ -471,10 +534,14 @@ class SystemStateStore:
         self.initialize_defaults()
 
         total_actions = len(self.healing_actions)
-        rec_metrics = self.recovery_metrics
-
-        success_rate = (rec_metrics.get("success_rate", 1.0) * 100.0) if total_actions > 0 else 0.0
-        avg_rec_time = rec_metrics.get("avg_recovery_time", 0.0)
+        if total_actions > 0:
+            succ_count = sum(1 for a in self.healing_actions if a.get("result") == "Success")
+            success_rate = round((succ_count / total_actions) * 100.0, 1)
+            total_rec_time = sum(a.get("recovery_time", 1.0) for a in self.healing_actions)
+            avg_rec_time = round(total_rec_time / total_actions, 2)
+        else:
+            success_rate = 0.0
+            avg_rec_time = 0.0
 
         # Strategy usage distribution
         strat_counts: Dict[str, int] = {}

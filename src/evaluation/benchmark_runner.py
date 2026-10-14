@@ -364,6 +364,7 @@ class BenchmarkRunner:
                         "unfinished_processes": metrics["unfinished_processes"],
                         "completion_rate": metrics["completion_rate"],
                         "avg_turnaround_time": metrics["avg_turnaround_time"],
+                        "penalized_turnaround_time": metrics.get("penalized_turnaround_time", metrics["avg_turnaround_time"]),
                         "p95_turnaround_time": metrics["p95_turnaround_time"],
                         "avg_waiting_time": metrics["avg_waiting_time"],
                         "avg_response_time": metrics["avg_response_time"],

@@ -164,6 +164,9 @@ class SystemSimulator:
         """
         self.current_time += dt
 
+        for proc in self.waiting_memory_queue:
+            proc.total_waiting_time += dt
+
         # 1. Admit new process arrivals
         self._admit_new_processes()
 

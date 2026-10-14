@@ -210,3 +210,104 @@ def test_sequential_navigation_scenario_does_not_reset():
     # Ensure NO unintended new simulation was executed during navigation
     assert state_store.simulation_runs_history[-1]["run_id"] == initial_runs
 
+
+def test_state_store_coreos_adversarial_stress_simulation():
+    """
+    Verifies that policy_mode='CoReOS' invokes the improved CoReOS architecture,
+    records non-zero conflicts and healing actions under adversarial stress,
+    links conflict events to healing actions, and correctly updates summary analytics.
+    """
+    res = state_store.run_and_record_simulation(
+        workload_type="adversarial_stress",
+        num_processes=40,
+        policy_mode="CoReOS",
+        seed=42,
+        sim_quantum=4.0
+    )
+    assert res is not None
+    assert "history" in res
+    assert "state" in res
+
+    conflicts_data = state_store.get_conflict_analytics()
+    healing_data = state_store.get_healing_analytics()
+
+    assert conflicts_data["total_conflicts"] > 0
+    assert len(conflicts_data["recent_conflicts"]) > 0
+    assert len(conflicts_data["distribution"]) > 0
+    assert conflicts_data["workload_info"]["policy_mode"] == "CoReOS"
+
+    assert healing_data["healing_actions"] > 0
+    assert healing_data["success_rate"] > 0.0
+    assert healing_data["avg_recovery_time"] > 0.0
+    assert len(healing_data["recent_actions"]) > 0
+    assert len(healing_data["strategy_usage"]) > 0
+
+
+def test_state_store_coreos_workload_comparisons():
+    """
+    Verifies reproducible telemetry across key workloads using CoReOS policy:
+    - steady_state: strictly 0 conflicts, 0 healing actions (control)
+    - memory_thrashing: non-zero conflicts and healing actions
+    - adversarial_stress: non-zero conflicts and healing actions
+    """
+    # 1. Steady state control
+    state_store.run_and_record_simulation(
+        workload_type="steady_state",
+        num_processes=40,
+        policy_mode="CoReOS",
+        seed=42,
+        sim_quantum=4.0
+    )
+    c_steady = state_store.get_conflict_analytics()
+    h_steady = state_store.get_healing_analytics()
+    assert c_steady["total_conflicts"] == 0
+    assert h_steady["healing_actions"] == 0
+
+    # 2. Memory thrashing
+    state_store.run_and_record_simulation(
+        workload_type="memory_thrashing",
+        num_processes=40,
+        policy_mode="CoReOS",
+        seed=42,
+        sim_quantum=4.0
+    )
+    c_mem = state_store.get_conflict_analytics()
+    h_mem = state_store.get_healing_analytics()
+    assert c_mem["total_conflicts"] > 0
+    assert h_mem["healing_actions"] > 0
+    assert any(d["type"] == "CPU-Memory" for d in c_mem["distribution"])
+    assert any(s["strategy"] == "Memory Reclaim & Quantum Expansion" for s in h_mem["strategy_usage"])
+
+
+def test_consecutive_simulation_refresh_preserves_independence():
+    """
+    Verifies that running a new simulation completely updates telemetry,
+    increments run_id, and does not contaminate the previous run data.
+    """
+    # Run 1: memory_thrashing
+    state_store.run_and_record_simulation(
+        workload_type="memory_thrashing",
+        num_processes=30,
+        policy_mode="CoReOS",
+        seed=12,
+        sim_quantum=4.0
+    )
+    run1_id = state_store.workload_info["run_id"]
+    conf1 = state_store.get_conflict_analytics()["total_conflicts"]
+
+    # Run 2: steady_state
+    state_store.run_and_record_simulation(
+        workload_type="steady_state",
+        num_processes=30,
+        policy_mode="CoReOS",
+        seed=12,
+        sim_quantum=4.0
+    )
+    run2_id = state_store.workload_info["run_id"]
+    c_steady = state_store.get_conflict_analytics()
+
+    assert run2_id == run1_id + 1
+    assert c_steady["workload_info"]["workload_type"] == "steady_state"
+    assert c_steady["total_conflicts"] == 0
+
+

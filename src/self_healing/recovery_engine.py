@@ -21,6 +21,9 @@ class RecoveryEngine:
         # Telemetry
         self.recovery_records: List[Dict[str, Any]] = []
         self.policy_switches: int = 0
+        self.consecutive_retries: int = 0
+        self.max_retries: int = 4
+        self.max_cooling_off_period: int = 25
 
     @property
     def is_cooling_off(self) -> bool:
@@ -36,8 +39,12 @@ class RecoveryEngine:
         Determines corrective intervention parameters based on regression type.
         Returns override parameter dictionary, or None if in cooling-off period.
         """
-        # Enforce cooling-off period to prevent oscillatory policy thrashing
-        if (current_step - self.last_recovery_step) < self.config.cooling_off_period:
+        # Enforce bounded cooling-off period with backoff limit to prevent policy flapping
+        effective_cooling = min(
+            self.max_cooling_off_period,
+            self.config.cooling_off_period * (1 + self.consecutive_retries)
+        )
+        if (current_step - self.last_recovery_step) < effective_cooling:
             return None
 
         self.last_recovery_step = current_step
@@ -48,16 +55,16 @@ class RecoveryEngine:
         corrective_overrides = {}
 
         if event.regression_type == "THRASHING_STALL":
-            # Force aggressive memory reclamation and lengthen CPU quantum to halt paging thrash
+            # Graduated reclamation: reclaim 2048 MB to halt thrashing without mass process eviction
             corrective_overrides = {
-                "memory_reclaim_target": 4096.0,
+                "memory_reclaim_target": 2048.0,
                 "cpu_quantum": 8.0,
                 "cpu_policy": "ROUND_ROBIN",
                 "io_policy": "SCAN"
             }
 
         elif event.regression_type == "THROUGHPUT_COLLAPSE":
-            # Lengthen quantum to clear backlogged batch processes and engage SSTF/SCAN
+            # Lengthen quantum to clear backlogged batch processes and engage SCAN
             corrective_overrides = {
                 "cpu_quantum": 6.0,
                 "cpu_policy": "ROUND_ROBIN",
@@ -65,11 +72,11 @@ class RecoveryEngine:
             }
 
         elif event.regression_type == "LATENCY_SPIKE":
-            # Throttle I/O and tighten quantum slightly for responsive scheduling
+            # Avoid SSTF seek starvation; deploy elevator SCAN and balanced 4.0 quantum
             corrective_overrides = {
-                "cpu_quantum": 3.0,
+                "cpu_quantum": 4.0,
                 "cpu_policy": "ROUND_ROBIN",
-                "io_policy": "SSTF",
+                "io_policy": "SCAN",
                 "memory_reclaim_target": 1024.0
             }
 
@@ -87,8 +94,14 @@ class RecoveryEngine:
 
         # Recovery criteria: no thrashing and metrics stabilized
         recovered = (not is_thrashing) and (mem_util < 88.0)
+        timed_out = elapsed_time >= 25.0
 
-        if recovered or elapsed_time >= 30.0:  # Timeout after 30 time units
+        if recovered:
+            self.consecutive_retries = max(0, self.consecutive_retries - 1)
+        elif timed_out:
+            self.consecutive_retries = min(self.max_retries, self.consecutive_retries + 1)
+
+        if recovered or timed_out:  # Timeout after 25 time units
             success = recovered
             self.recovery_records.append({
                 "regression_type": self.active_recovery.regression_type,
@@ -105,7 +118,8 @@ class RecoveryEngine:
                 "total_recoveries": 0,
                 "success_rate": 0.0,
                 "avg_recovery_time": 0.0,
-                "policy_switches": self.policy_switches
+                "policy_switches": self.policy_switches,
+                "consecutive_retries": self.consecutive_retries
             }
 
         successes = sum(1 for r in self.recovery_records if r["success"])
@@ -116,5 +130,7 @@ class RecoveryEngine:
             "total_recoveries": len(self.recovery_records),
             "success_rate": round(success_rate, 4),
             "avg_recovery_time": round(avg_time, 2),
-            "policy_switches": self.policy_switches
+            "policy_switches": self.policy_switches,
+            "consecutive_retries": self.consecutive_retries
         }
+

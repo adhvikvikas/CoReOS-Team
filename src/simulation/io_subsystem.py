@@ -64,12 +64,16 @@ class IOSubsystem:
         return True
 
     def sort_io_queue(self, policy: str = "FCFS"):
-        if policy == "FCFS":
+        effective_policy = policy
+        if policy == "SSTF" and any(req.process.total_io_wait_time >= 25.0 for req in self.io_queue):
+            effective_policy = "SCAN"
+
+        if effective_policy == "FCFS":
             pass
-        elif policy == "SSTF":
+        elif effective_policy == "SSTF":
             # Shortest Seek Time First
             self.io_queue.sort(key=lambda r: abs(r.cylinder - self.current_disk_head))
-        elif policy == "SCAN":
+        elif effective_policy == "SCAN":
             # Elevator algorithm
             ahead = [r for r in self.io_queue if (r.cylinder - self.current_disk_head) * self.disk_direction >= 0]
             behind = [r for r in self.io_queue if (r.cylinder - self.current_disk_head) * self.disk_direction < 0]

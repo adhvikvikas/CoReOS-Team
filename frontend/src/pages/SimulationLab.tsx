@@ -14,7 +14,7 @@ export default function SimulationLab() {
   const [config, setConfig] = useState({
     workload_type: 'adversarial_stress',
     num_processes: 40,
-    policy_mode: 'Complete CoReOS',
+    policy_mode: 'CoReOS',
     seed: 42,
     sim_quantum: 4.0
   });
@@ -48,7 +48,7 @@ export default function SimulationLab() {
             setConfig({
               workload_type: response.data.config.workload_type || 'adversarial_stress',
               num_processes: response.data.config.num_processes || 40,
-              policy_mode: response.data.config.policy_mode || 'Complete CoReOS',
+              policy_mode: response.data.config.policy_mode || 'CoReOS',
               seed: response.data.config.seed ?? 42,
               sim_quantum: response.data.config.sim_quantum || 4.0
             });
@@ -118,7 +118,13 @@ export default function SimulationLab() {
                 value={config.policy_mode}
                 onChange={e => setConfig({ ...config, policy_mode: e.target.value })}
               >
-                {["Complete CoReOS", "Conventional (Static RR)", "Independent Agents", "Coordinated (No Conflict)"].map(p => (
+                {[
+                  "CoReOS",
+                  "Improved RL (Phase 7)",
+                  "Conventional (Static RR)",
+                  "Independent Agents",
+                  "Coordinated (No Conflict)"
+                ].map(p => (
                   <option key={p} value={p}>{p}</option>
                 ))}
               </select>

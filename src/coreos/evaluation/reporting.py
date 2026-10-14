@@ -24,6 +24,7 @@ class ReportGenerator:
         "unfinished_processes": "lower",
         "throughput": "higher",
         "avg_turnaround_time": "lower",
+        "penalized_turnaround_time": "lower",
         "p95_turnaround_time": "lower",
         "avg_waiting_time": "lower",
         "avg_response_time": "lower",
@@ -34,15 +35,15 @@ class ReportGenerator:
 
     DEFAULT_BENCHMARK_METRICS = [
         "completion_rate", "completed_processes", "unfinished_processes",
-        "throughput", "avg_turnaround_time", "p95_turnaround_time",
-        "avg_waiting_time", "avg_response_time", "jains_fairness",
-        "thrashing_ticks", "decision_overhead_ms"
+        "throughput", "avg_turnaround_time", "penalized_turnaround_time",
+        "p95_turnaround_time", "avg_waiting_time", "avg_response_time",
+        "jains_fairness", "thrashing_ticks", "decision_overhead_ms"
     ]
 
     DEFAULT_ABLATION_METRICS = [
         "completion_rate", "completed_processes", "unfinished_processes",
-        "throughput", "avg_turnaround_time", "avg_waiting_time",
-        "jains_fairness", "thrashing_ticks"
+        "throughput", "avg_turnaround_time", "penalized_turnaround_time",
+        "avg_waiting_time", "jains_fairness", "thrashing_ticks"
     ]
 
     PRIMARY_CONTROLS = [
@@ -63,6 +64,7 @@ class ReportGenerator:
         "unfinished_processes": (0.0, None),
         "throughput": (0.0, None),
         "avg_turnaround_time": (0.0, None),
+        "penalized_turnaround_time": (0.0, None),
         "p95_turnaround_time": (0.0, None),
         "avg_waiting_time": (0.0, None),
         "avg_response_time": (0.0, None),

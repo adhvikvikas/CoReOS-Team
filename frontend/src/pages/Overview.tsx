@@ -202,7 +202,7 @@ export default function Overview() {
             </div>
           </div>
 
-          {/* Turnaround Improvement */}
+          {/* Benchmark Stress Turnaround */}
           <div className="bg-[#131719] border border-[#20262B] rounded-xl p-4 flex items-center justify-between">
             <div className="flex items-center gap-3.5">
               <div className="w-10 h-10 rounded-lg bg-[#251F10] border border-[#854D0E] text-[#FBBF24] flex items-center justify-center shrink-0">
@@ -210,13 +210,13 @@ export default function Overview() {
               </div>
               <div>
                 <div className="text-[10px] font-mono uppercase tracking-wider text-[#717B86]">
-                  Turnaround Improvement
+                  Completed Turnaround
                 </div>
                 <div className="text-xl font-bold text-[#F3F4F6] mt-0.5 font-mono">
                   {data.turnaround_improvement || "N/A"}
                 </div>
                 <div className="text-[11px] text-[#717B86] mt-0.5">
-                  {data.turnaround_improvement_desc || "Compared to conventional"}
+                  {data.turnaround_improvement_desc || "Adversarial Stress (Completed procs)"}
                 </div>
               </div>
             </div>
@@ -225,6 +225,77 @@ export default function Overview() {
             </div>
           </div>
         </div>
+
+        {/* Diagnostic Stress Benchmark Comparison Panel */}
+        {data.stress_comparison && (
+          <div className="mt-4 p-4 rounded-xl bg-[#131719] border border-[#20262B] space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#38BDF8]" />
+                <span className="text-xs font-semibold text-[#F3F4F6]">
+                  Adversarial Stress Benchmark Comparison (CoReOS vs Conventional)
+                </span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#1E293B] border border-[#303A40] text-[#38BDF8]">
+                  Phase 8 Competition Audit
+                </span>
+              </div>
+              <span className="text-[10px] font-mono text-[#717B86]">
+                Cutoff: 300 ticks • 40 jobs/seed • 30 seeds
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 text-xs">
+              <div className="bg-[#101416] p-2.5 rounded-lg border border-[#20262B]">
+                <div className="text-[10px] text-[#717B86] uppercase font-mono">Completion Rate</div>
+                <div className="font-mono font-semibold text-[#F3F4F6] mt-0.5">
+                  <span className="text-[#38BDF8]">{data.stress_comparison.coreos_completion_rate}%</span> vs{' '}
+                  <span className="text-[#CBD5E1]">{data.stress_comparison.conv_completion_rate}%</span>
+                </div>
+                <div className={`text-[10px] mt-0.5 ${data.stress_comparison.comp_diff_pct >= 0 ? 'text-[#34D399]' : 'text-[#F87171]'}`}>
+                  {data.stress_comparison.comp_diff_text || (data.stress_comparison.comp_diff_pct >= 0 ? `+${data.stress_comparison.comp_diff_pct}% advantage` : `${data.stress_comparison.comp_diff_pct}% deficit`)}
+                </div>
+              </div>
+
+              <div className="bg-[#101416] p-2.5 rounded-lg border border-[#20262B]">
+                <div className="text-[10px] text-[#717B86] uppercase font-mono">Throughput</div>
+                <div className="font-mono font-semibold text-[#F3F4F6] mt-0.5">
+                  <span className="text-[#38BDF8]">{data.stress_comparison.coreos_throughput}</span> vs{' '}
+                  <span className="text-[#CBD5E1]">{data.stress_comparison.conv_throughput}</span>
+                </div>
+                <div className={`text-[10px] mt-0.5 ${data.stress_comparison.tp_diff_pct >= 0 ? 'text-[#34D399]' : 'text-[#F87171]'}`}>
+                  {data.stress_comparison.tp_diff_text || (data.stress_comparison.tp_diff_pct >= 0 ? `+${data.stress_comparison.tp_diff_pct}% jobs/tick` : `${data.stress_comparison.tp_diff_pct}% jobs/tick`)}
+                </div>
+              </div>
+
+              <div className="bg-[#101416] p-2.5 rounded-lg border border-[#20262B]">
+                <div className="text-[10px] text-[#717B86] uppercase font-mono">Completed Turnaround</div>
+                <div className="font-mono font-semibold text-[#F3F4F6] mt-0.5">
+                  <span className="text-[#38BDF8]">{data.stress_comparison.coreos_completed_turnaround}</span> vs{' '}
+                  <span className="text-[#CBD5E1]">{data.stress_comparison.conv_completed_turnaround}</span> ticks
+                </div>
+                <div className="text-[10px] text-[#717B86] mt-0.5">Completed jobs only</div>
+              </div>
+
+              <div className="bg-[#101416] p-2.5 rounded-lg border border-[#20262B]">
+                <div className="text-[10px] text-[#717B86] uppercase font-mono">Penalized Turnaround</div>
+                <div className="font-mono font-semibold text-[#F3F4F6] mt-0.5">
+                  <span className="text-[#38BDF8]">{data.stress_comparison.coreos_penalized_turnaround}</span> vs{' '}
+                  <span className="text-[#CBD5E1]">{data.stress_comparison.conv_penalized_turnaround}</span> ticks
+                </div>
+                <div className="text-[10px] text-[#717B86] mt-0.5">300-tick cutoff penalty</div>
+              </div>
+
+              <div className="bg-[#101416] p-2.5 rounded-lg border border-[#20262B]">
+                <div className="text-[10px] text-[#717B86] uppercase font-mono">Thrashing Ticks</div>
+                <div className="font-mono font-semibold text-[#34D399] mt-0.5">
+                  <span>{data.stress_comparison.coreos_thrashing}</span> vs{' '}
+                  <span className="text-[#CBD5E1]">{data.stress_comparison.conv_thrashing}</span> ticks
+                </div>
+                <div className="text-[10px] text-[#34D399] mt-0.5">{data.stress_comparison.thrashing_reduction_pct}% reduction</div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* System Health Indicator Bar */}
         {data.health && (
@@ -443,13 +514,14 @@ export default function Overview() {
                 <th className="px-4 py-2.5 font-semibold">Workload</th>
                 <th className="px-4 py-2.5 font-semibold">Baseline</th>
                 <th className="px-4 py-2.5 font-semibold">Completion Rate</th>
-                <th className="px-4 py-2.5 font-semibold">Avg Turnaround</th>
+                <th className="px-4 py-2.5 font-semibold">Completed Turnaround</th>
+                <th className="px-4 py-2.5 font-semibold">Penalized Turnaround</th>
                 <th className="px-4 py-2.5 font-semibold">Throughput</th>
                 <th className="px-4 py-2.5 font-semibold">Thrashing</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#1C2328] bg-[#101416]">
-              {(data.highlights || []).slice(0, 5).map((row: any, i: number) => (
+              {(data.highlights || []).slice(0, 10).map((row: any, i: number) => (
                 <tr key={i} className="hover:bg-[#161B1E] transition-colors">
                   <td className="px-4 py-2.5 font-mono text-xs text-[#60A5FA]">
                     {row.workload}
@@ -463,6 +535,9 @@ export default function Overview() {
                   <td className="px-4 py-2.5 font-mono text-xs text-[#CBD5E1]">
                     {row.avg_turnaround_time != null ? `${Number(row.avg_turnaround_time).toFixed(2)} ticks` : '—'}
                   </td>
+                  <td className="px-4 py-2.5 font-mono text-xs text-[#38BDF8]">
+                    {row.penalized_turnaround_time != null ? `${Number(row.penalized_turnaround_time).toFixed(2)} ticks` : '—'}
+                  </td>
                   <td className="px-4 py-2.5 font-mono text-xs text-[#94A3B8]">
                     {row.throughput != null ? Number(row.throughput).toFixed(3) : '—'}
                   </td>
@@ -474,6 +549,9 @@ export default function Overview() {
             </tbody>
           </table>
         </div>
+        <p className="text-[11px] text-[#717B86] mt-2.5 leading-relaxed">
+          * Penalized Turnaround assigns a 300-tick cutoff penalty to unfinished processes, preventing survivorship bias from favoring schedulers that complete fewer jobs under heavy load.
+        </p>
       </div>
 
       {/* 05 — RESEARCH OBJECTIVE & 06 — SYSTEM ARCHITECTURE PIPELINE */}

@@ -1,0 +1,9 @@
+rank,candidate,composite_score_mean,composite_score_std,composite_score_ci95,completion_rate_mean,penalized_turnaround_mean,throughput_mean,thrashing_ticks_mean,jains_fairness_mean,decision_overhead_ms_mean,guardrail_pass_rate
+1,F_ImprovedRL,84.8,9.37,1.38,95.82,41.82,0.1778,1.81,0.6041,0.0032,61.7
+2,G_ChampionCoReOS,82.84,11.51,1.69,92.5,52.45,0.1726,0.14,0.6164,0.1578,60.6
+3,H_OriginalRL,82.17,15.64,2.3,90.64,58.78,0.1743,0.06,0.6396,0.032,61.1
+4,D_ConflictNoHealing,75.47,20.8,3.06,81.35,82.4,0.1549,4.32,0.6321,0.1386,54.4
+5,E_CompleteCoReOS,75.46,20.87,3.07,81.32,82.23,0.1549,4.08,0.6288,0.161,56.1
+6,C_CoordNoConflict,75.18,21.26,3.13,81.76,81.78,0.1554,9.67,0.6346,0.0054,42.2
+7,A_Conventional,74.29,23.44,3.45,81.35,81.73,0.1573,19.81,0.6393,0.0335,43.9
+8,B_IndependentAgents,74.29,22.46,3.3,79.46,86.46,0.1521,4.61,0.6288,0.0021,53.3

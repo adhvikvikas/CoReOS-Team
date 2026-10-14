@@ -30,31 +30,33 @@ def compute_simulation_metrics(
     overhead_ms: float = 0.0,
     conflict_metrics: Optional[Dict[str, Any]] = None,
     healing_metrics: Optional[Dict[str, Any]] = None,
-    total_processes: Optional[int] = None
+    total_processes: Optional[int] = None,
+    cutoff_penalty: float = 300.0
 ) -> Dict[str, Any]:
     """
     Calculates standardized metrics across a simulation run.
 
     NOTE ON SURVIVORSHIP BIAS & UNFINISHED PROCESSES:
     - avg_turnaround_time, p95_turnaround_time, avg_waiting_time, and avg_response_time
-      are computed strictly over completed_processes.
-    - Jain's Fairness Index evaluates the turnaround-time distribution exclusively among
-      completed_processes.
-    - In incomplete workloads (e.g. adversarial stress or under-provisioned memory),
-      measuring only completed processes can introduce survivorship bias if a scheduler
+      are computed strictly over completed_processes. In incomplete workloads (e.g. adversarial
+      stress), measuring only completed processes introduces survivorship bias if a scheduler
       finishes a small number of short jobs while starving longer jobs.
-    - To prevent survivorship bias, completion metrics (total_processes, completed_processes,
-      unfinished_processes, completion_rate) are explicitly reported and must be analyzed
-      alongside turnaround times.
+    - penalized_turnaround_time accounts for unfinished jobs at the evaluation cutoff:
+      Penalized turnaround = (sum of turnaround times for completed jobs + cutoff_penalty for each unfinished job) / total jobs.
+      This diagnostic metric penalizes schedulers that drop or fail to complete submitted jobs within the horizon.
+    - To ensure full transparency, completion metrics (total_processes, completed_processes,
+      unfinished_processes, completion_rate) are explicitly reported alongside both completed-job
+      and penalized turnaround metrics.
     """
     n_procs = len(completed_processes)
     total_procs = int(total_processes) if total_processes is not None else n_procs
     unfinished_procs = max(0, total_procs - n_procs)
     completion_rate = round((n_procs / total_procs * 100.0), 2) if total_procs > 0 else 0.0
 
+    turnarounds = [p.turnaround_time for p in completed_processes if p.turnaround_time is not None]
+
     if n_procs > 0:
         wait_times = [p.total_waiting_time for p in completed_processes]
-        turnarounds = [p.turnaround_time for p in completed_processes if p.turnaround_time is not None]
         resp_times = [p.response_time for p in completed_processes if p.response_time is not None]
 
         avg_wait = float(np.mean(wait_times)) if wait_times else 0.0
@@ -65,6 +67,14 @@ def compute_simulation_metrics(
     else:
         avg_wait = avg_turnaround = p95_turnaround = avg_response = 0.0
         fairness = 1.0
+
+    # Penalized turnaround diagnostic evaluation metric
+    if total_procs > 0:
+        completed_turnaround_sum = float(sum(turnarounds)) if turnarounds else 0.0
+        unfinished_penalty_sum = float(unfinished_procs * cutoff_penalty)
+        penalized_turnaround = float((completed_turnaround_sum + unfinished_penalty_sum) / total_procs)
+    else:
+        penalized_turnaround = 0.0
 
     if simulation_history:
         cpu_utils = [h.get("cpu_utilization", 0.0) for h in simulation_history]
@@ -90,6 +100,7 @@ def compute_simulation_metrics(
         "total_time": round(total_time, 2),
         "avg_waiting_time": round(avg_wait, 2),
         "avg_turnaround_time": round(avg_turnaround, 2),
+        "penalized_turnaround_time": round(penalized_turnaround, 2),
         "p95_turnaround_time": round(p95_turnaround, 2),
         "avg_response_time": round(avg_response, 2),
         "throughput": round(throughput, 4),

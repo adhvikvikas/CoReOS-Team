@@ -31,7 +31,8 @@ def compute_simulation_benchmark_summary(
     overhead_ms: float = 0.0,
     conflict_metrics: Optional[Dict[str, Any]] = None,
     healing_metrics: Optional[Dict[str, Any]] = None,
-    total_processes: Optional[int] = None
+    total_processes: Optional[int] = None,
+    cutoff_penalty: float = 300.0
 ) -> Dict[str, Any]:
     """
     Aggregates full benchmark metrics for a single simulation run.
@@ -43,15 +44,18 @@ def compute_simulation_benchmark_summary(
       starved or unfinished processes. Explicit metrics (total_processes,
       completed_processes, unfinished_processes, completion_rate) are reported
       to ensure transparent, unbiased evaluation across all configurations.
+    - penalized_turnaround_time incorporates the 300-tick evaluation cutoff penalty
+      for unfinished processes: (sum(completed_turnarounds) + unfinished * cutoff_penalty) / total_procs.
     """
     n_procs = len(completed_processes)
     total_procs = int(total_processes) if total_processes is not None else n_procs
     unfinished_procs = max(0, total_procs - n_procs)
     completion_rate = round((n_procs / total_procs * 100.0), 2) if total_procs > 0 else 0.0
     
+    turnarounds = [p.turnaround_time for p in completed_processes if p.turnaround_time is not None]
+
     if n_procs > 0:
         wait_times = [p.total_waiting_time for p in completed_processes]
-        turnarounds = [p.turnaround_time for p in completed_processes if p.turnaround_time is not None]
         resp_times = [p.response_time for p in completed_processes if p.response_time is not None]
         
         avg_wait = float(np.mean(wait_times))
@@ -62,6 +66,14 @@ def compute_simulation_benchmark_summary(
     else:
         avg_wait = avg_turnaround = avg_response = p95_turnaround = 0.0
         fairness = 1.0
+
+    # Penalized turnaround diagnostic evaluation metric
+    if total_procs > 0:
+        completed_turnaround_sum = float(sum(turnarounds)) if turnarounds else 0.0
+        unfinished_penalty_sum = float(unfinished_procs * cutoff_penalty)
+        penalized_turnaround = float((completed_turnaround_sum + unfinished_penalty_sum) / total_procs)
+    else:
+        penalized_turnaround = 0.0
 
     # Extract subsystem dynamics from history
     if simulation_history:
@@ -86,6 +98,7 @@ def compute_simulation_benchmark_summary(
         "completion_rate": completion_rate,
         "avg_waiting_time": round(avg_wait, 2),
         "avg_turnaround_time": round(avg_turnaround, 2),
+        "penalized_turnaround_time": round(penalized_turnaround, 2),
         "p95_turnaround_time": round(p95_turnaround, 2),
         "avg_response_time": round(avg_response, 2),
         "throughput": round(throughput, 4),

@@ -83,10 +83,14 @@ class MemorySubsystem:
         Returns amount of MB reclaimed.
         """
         reclaimed = 0.0
-        # Sort candidates: non-running, lowest priority first
+        # Sort candidates: prioritize I/O waiting processes, then lowest priority first
         candidates = sorted(
             [p for p in active_processes if p.pid in self.physical_allocations and p.state != ProcessState.RUNNING],
-            key=lambda p: (p.priority, -self.physical_allocations.get(p.pid, 0.0))
+            key=lambda p: (
+                0 if p.state == ProcessState.WAITING_IO else 1,
+                p.priority,
+                -self.physical_allocations.get(p.pid, 0.0)
+            )
         )
 
         for p in candidates:

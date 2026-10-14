@@ -1,0 +1,49 @@
+candidate,workload,pass_rate_pct,common_violations
+F_ImprovedRL,steady_state,100.0,NONE
+F_ImprovedRL,cpu_spike,100.0,NONE
+F_ImprovedRL,memory_thrashing,90.0,Fairness violation
+F_ImprovedRL,io_bottleneck,63.3,Fairness violation
+F_ImprovedRL,mixed,3.3,"Fairness violation, Turnaround latency regression on mixed"
+F_ImprovedRL,adversarial_stress,96.7,Fairness violation
+G_ChampionCoReOS,steady_state,100.0,NONE
+G_ChampionCoReOS,cpu_spike,73.3,Fairness violation
+G_ChampionCoReOS,memory_thrashing,83.3,Fairness violation
+G_ChampionCoReOS,io_bottleneck,0.0,Fairness violation
+G_ChampionCoReOS,mixed,3.3,"Fairness violation, Turnaround latency regression on mixed"
+G_ChampionCoReOS,adversarial_stress,93.3,Fairness violation
+H_OriginalRL,steady_state,93.3,Turnaround latency regression on steady_state
+H_OriginalRL,cpu_spike,100.0,NONE
+H_OriginalRL,memory_thrashing,70.0,Fairness violation
+H_OriginalRL,io_bottleneck,0.0,Fairness violation
+H_OriginalRL,mixed,3.3,"Fairness violation, Turnaround latency regression on mixed"
+H_OriginalRL,adversarial_stress,100.0,NONE
+D_ConflictNoHealing,steady_state,76.7,Turnaround latency regression on steady_state
+D_ConflictNoHealing,cpu_spike,100.0,NONE
+D_ConflictNoHealing,memory_thrashing,60.0,"Fairness violation, Thrashing ceiling exceeded on memory_thrashing"
+D_ConflictNoHealing,io_bottleneck,0.0,Fairness violation
+D_ConflictNoHealing,mixed,6.7,"Fairness violation, Turnaround latency regression on mixed"
+D_ConflictNoHealing,adversarial_stress,83.3,"Fairness violation, Thrashing ceiling exceeded on adversarial_stress"
+E_CompleteCoReOS,steady_state,76.7,Turnaround latency regression on steady_state
+E_CompleteCoReOS,cpu_spike,100.0,NONE
+E_CompleteCoReOS,memory_thrashing,63.3,"Fairness violation, Thrashing ceiling exceeded on memory_thrashing"
+E_CompleteCoReOS,io_bottleneck,0.0,Fairness violation
+E_CompleteCoReOS,mixed,6.7,"Fairness violation, Turnaround latency regression on mixed"
+E_CompleteCoReOS,adversarial_stress,90.0,"Fairness violation, Thrashing ceiling exceeded on adversarial_stress"
+C_CoordNoConflict,steady_state,76.7,Turnaround latency regression on steady_state
+C_CoordNoConflict,cpu_spike,100.0,NONE
+C_CoordNoConflict,memory_thrashing,63.3,"Fairness violation, Thrashing ceiling exceeded on memory_thrashing"
+C_CoordNoConflict,io_bottleneck,0.0,Fairness violation
+C_CoordNoConflict,mixed,6.7,"Fairness violation, Turnaround latency regression on mixed"
+C_CoordNoConflict,adversarial_stress,6.7,"Fairness violation, Thrashing ceiling exceeded on adversarial_stress"
+A_Conventional,steady_state,86.7,Turnaround latency regression on steady_state
+A_Conventional,cpu_spike,100.0,NONE
+A_Conventional,memory_thrashing,73.3,"Fairness violation, Thrashing ceiling exceeded on memory_thrashing"
+A_Conventional,io_bottleneck,0.0,Fairness violation
+A_Conventional,mixed,3.3,"Fairness violation, Turnaround latency regression on mixed"
+A_Conventional,adversarial_stress,0.0,"Fairness violation, Thrashing ceiling exceeded on adversarial_stress"
+B_IndependentAgents,steady_state,76.7,Turnaround latency regression on steady_state
+B_IndependentAgents,cpu_spike,100.0,NONE
+B_IndependentAgents,memory_thrashing,60.0,"Fairness violation, Thrashing ceiling exceeded on memory_thrashing"
+B_IndependentAgents,io_bottleneck,0.0,Fairness violation
+B_IndependentAgents,mixed,6.7,"Fairness violation, Turnaround latency regression on mixed"
+B_IndependentAgents,adversarial_stress,76.7,"Fairness violation, Thrashing ceiling exceeded on adversarial_stress"

@@ -44,5 +44,21 @@ export const BASELINE_CARBON_COLORS: Record<string, string> = {
   'C_CoordNoConflict': '#FBBF24',     // Amber
   'D_ConflictNoHealing': '#F87171',   // Red/coral
   'E_CompleteCoReOS': '#A78BFA',      // Purple
-  'F_LearningRL': '#34D3E9',          // Cyan
+  'F_LearningRL': '#38BDF8',          // Legacy Cyan
+  'F_ImprovedRL': '#2DD4BF',          // Teal / Cyan (Phase 7/8 Winner)
+  'G_ChampionCoReOS': '#F472B6',      // Pink / Rose (CoReOS Active System)
+  'H_OriginalRL': '#94A3B8',          // Slate / Steel (Original Tabular RL)
 };
+
+export const CANDIDATE_LABELS: Record<string, string> = {
+  'A_Conventional': 'A: Conventional (Static RR)',
+  'B_IndependentAgents': 'B: Independent Agents',
+  'C_CoordNoConflict': 'C: Coord (No Conflict)',
+  'D_ConflictNoHealing': 'D: Conflict (No Healing)',
+  'E_CompleteCoReOS': 'E: Baseline CoReOS (Historical)',
+  'F_ImprovedRL': 'F: Improved RL (Phase 7)',
+  'G_ChampionCoReOS': 'CoReOS',
+  'H_OriginalRL': 'H: Original RL (Phase 3/5)',
+  'F_LearningRL': 'F: Learning RL (Phase 3)',
+};
+

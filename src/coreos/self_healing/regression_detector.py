@@ -57,13 +57,15 @@ class PerformanceRegressionDetector:
             self.throughput_window.pop(0)
             self.wait_time_window.pop(0)
 
-        # Condition 1: Thrashing Stall (evaluated immediately)
-        if is_thrashing:
+        # Condition 1: Thrashing Stall & Memory Allocation Saturation (evaluated immediately)
+        wait_mem = state.get("waiting_memory_count", 0)
+        mem_util = state.get("memory_utilization", 0.0)
+        if is_thrashing or (mem_util >= 88.0 and wait_mem >= 1) or wait_mem >= 3:
             event = RegressionEvent(
                 timestamp=current_time,
                 regression_type="THRASHING_STALL",
-                severity=0.90,
-                current_value=state.get("memory_utilization", 0.0),
+                severity=0.90 if is_thrashing else 0.85,
+                current_value=mem_util,
                 baseline_value=85.0,
                 consecutive_violations=1,
                 candidate_decisions=list(self.decision_window)

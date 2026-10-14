@@ -184,3 +184,71 @@ def test_simulator_runtime_completion_tracking():
     assert state["unfinished_processes_count"] == 1
     assert state["completion_rate"] == 66.67
 
+
+def test_penalized_turnaround_all_completed():
+    """When all submitted jobs finish, penalized turnaround equals completed avg turnaround."""
+    procs = []
+    for i in range(1, 5):
+        p = SimulatedProcess(pid=i, name=f"p{i}", arrival_time=0.0, cpu_burst_time=10.0, memory_demand_mb=128.0)
+        p.start_time = float(i)
+        p.completion_time = float(i * 10)  # 10, 20, 30, 40 -> avg = 25.0
+        procs.append(p)
+
+    m = compute_simulation_metrics(procs, [{"time": 40.0}], total_processes=4)
+    assert m["total_processes"] == 4
+    assert m["completed_processes"] == 4
+    assert m["unfinished_processes"] == 0
+    assert m["avg_turnaround_time"] == 25.0
+    assert m["penalized_turnaround_time"] == 25.0
+
+
+def test_penalized_turnaround_partial_completion():
+    """
+    When only a subset of jobs finish, unfinished jobs are penalized at cutoff (default 300.0).
+    Total = 10, Completed = 2 with turnaround 10.0 and 20.0 (sum=30.0).
+    Unfinished = 8 with penalty 300.0 each (sum=2400.0).
+    Penalized = (30.0 + 2400.0) / 10 = 243.0.
+    """
+    p1 = SimulatedProcess(pid=1, name="p1", arrival_time=0.0, cpu_burst_time=5.0, memory_demand_mb=64.0)
+    p1.start_time = 0.0
+    p1.completion_time = 10.0
+    p2 = SimulatedProcess(pid=2, name="p2", arrival_time=0.0, cpu_burst_time=5.0, memory_demand_mb=64.0)
+    p2.start_time = 0.0
+    p2.completion_time = 20.0
+
+    m = compute_simulation_metrics([p1, p2], [{"time": 300.0}], total_processes=10)
+    assert m["total_processes"] == 10
+    assert m["completed_processes"] == 2
+    assert m["unfinished_processes"] == 8
+    assert m["avg_turnaround_time"] == 15.0  # completed only: (10 + 20) / 2
+    assert m["penalized_turnaround_time"] == 243.0  # (30 + 8 * 300) / 10
+
+    # Configurable penalty test
+    m_custom = compute_simulation_metrics([p1, p2], [{"time": 300.0}], total_processes=10, cutoff_penalty=100.0)
+    # (30 + 8 * 100) / 10 = 83.0
+    assert m_custom["penalized_turnaround_time"] == 83.0
+
+
+def test_penalized_turnaround_zero_completed():
+    """When zero jobs complete, penalized turnaround equals the cutoff penalty."""
+    m = compute_simulation_metrics([], [{"time": 300.0}], total_processes=5, cutoff_penalty=300.0)
+    assert m["total_processes"] == 5
+    assert m["completed_processes"] == 0
+    assert m["unfinished_processes"] == 5
+    assert m["avg_turnaround_time"] == 0.0
+    assert m["penalized_turnaround_time"] == 300.0
+
+
+def test_penalized_turnaround_zero_job_workload():
+    """Empty workload handles zero processes safely without division by zero."""
+    m_empty = compute_simulation_metrics([], [], total_processes=0)
+    assert m_empty["total_processes"] == 0
+    assert m_empty["completed_processes"] == 0
+    assert m_empty["unfinished_processes"] == 0
+    assert m_empty["penalized_turnaround_time"] == 0.0
+
+    m_none = compute_simulation_metrics([], [], total_processes=None)
+    assert m_none["total_processes"] == 0
+    assert m_none["penalized_turnaround_time"] == 0.0
+
+

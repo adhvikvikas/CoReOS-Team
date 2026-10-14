@@ -176,7 +176,11 @@ class MemorySubsystem:
         reclaimed = 0.0
         candidates = sorted(
             [p for p in active_processes if p.pid in self.physical_allocations and p.state != ProcessState.RUNNING],
-            key=lambda p: (p.priority, -self.physical_allocations.get(p.pid, 0.0))
+            key=lambda p: (
+                0 if p.state == ProcessState.WAITING_IO else 1,
+                p.priority,
+                -self.physical_allocations.get(p.pid, 0.0)
+            )
         )
 
         for p in candidates:
@@ -251,9 +255,12 @@ class IOSubsystem:
         return True
 
     def sort_io_queue(self, policy: str):
-        if policy == "SSTF":
+        effective_policy = policy
+        if policy == "SSTF" and any(proc.total_io_wait_time >= 25.0 for proc, _, _ in self.io_queue):
+            effective_policy = "SCAN"
+        if effective_policy == "SSTF":
             self.io_queue.sort(key=lambda item: abs(item[2] - self.current_disk_head))
-        elif policy == "SCAN":
+        elif effective_policy == "SCAN":
             ahead = [r for r in self.io_queue if (r[2] - self.current_disk_head) * self.disk_direction >= 0]
             behind = [r for r in self.io_queue if (r[2] - self.current_disk_head) * self.disk_direction < 0]
             ahead.sort(key=lambda r: (r[2] - self.current_disk_head) * self.disk_direction)
@@ -417,6 +424,9 @@ class SystemSimulator:
         memory_reclaim_target: float = 0.0
     ) -> Dict[str, Any]:
         self.current_time += dt
+
+        for proc in self.waiting_memory_queue:
+            proc.total_waiting_time += dt
 
         self._admit_new_processes()
 

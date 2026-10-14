@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import api from '../api/client';
 import Card from '../components/common/Card';
-import { FileText, Table as TableIcon, Archive, BarChart3, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { FileText, Table as TableIcon, Archive, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { marked } from 'marked';
 
 const TABS = [
@@ -25,18 +25,37 @@ export default function ResearchReports() {
     api.get('/reports/ablation_summary')
       .then(res => setData(res.data))
       .catch(err => {
-        console.error(err);
-        setError('Failed to load ablation telemetry.');
+        console.warn('Optional ablation telemetry not available:', err);
       })
       .finally(() => setLoading(false));
 
-    api.get('/reports/content/benchmark_analysis.md')
-      .then(res => setAnalysisContent(res.data.content || ''))
-      .catch(err => console.error(err));
+    api.get('/reports/content/final_canonical_optimization_report.md')
+      .then(res => {
+        if (res.data && res.data.content) {
+          setAnalysisContent(res.data.content);
+        } else {
+          api.get('/reports/content/phase8_final_competition_report.md')
+            .then(r => setAnalysisContent(r.data.content || ''))
+            .catch(() => setError('Failed to load canonical analysis report.'));
+        }
+      })
+      .catch(() => {
+        api.get('/reports/content/phase8_final_competition_report.md')
+          .then(r => setAnalysisContent(r.data.content || ''))
+          .catch(() => setError('Failed to load canonical analysis report.'));
+      });
 
-    api.get('/reports/content/research_report.md')
-      .then(res => setResearchContent(res.data.content || ''))
-      .catch(err => console.error(err));
+    api.get('/reports/content/final_canonical_reproducibility.md')
+      .then(res => {
+        if (res.data && res.data.content) {
+          setResearchContent(res.data.content);
+        } else {
+          api.get('/reports/content/phase9_final_audit_report.md').then(r => setResearchContent(r.data.content || ''));
+        }
+      })
+      .catch(() => {
+        api.get('/reports/content/phase9_final_audit_report.md').then(r => setResearchContent(r.data.content || ''));
+      });
   }, []);
 
   const renderedAnalysis = useMemo(() => {
@@ -104,7 +123,7 @@ export default function ResearchReports() {
                     1. Executive Summary & Core Findings
                   </h2>
                   <p className="text-[#A1A1AA] text-sm leading-relaxed mb-4">
-                    This report presents an empirical, statistically grounded evaluation of <strong className="text-[#F3F4F6]">CoReOS</strong> (Complete Architecture: Multi-Agent Control + Conflict Prediction + Outcome-Driven Self-Healing) against five standard learning-based baselines across heterogeneous workload scenarios. To uphold rigorous scientific integrity, metrics account transparently for unfinished processes, standardized random seeds ensure paired workload equivalence, and statistical uncertainty is reported using Student&apos;s t-distribution (N = 30, degrees of freedom = 29).
+                    This report presents an empirical, statistically grounded evaluation of all eight candidates across 6 workloads and 30 fresh held-out seeds (1,440 total trials): Conventional (A), Independent Agents (B), Coord No-Conflict (C), Conflict No-Healing (D), Complete CoReOS (E), Phase 7 Improved RL (F), CoReOS (G), and Original RL (H). To uphold rigorous scientific integrity, metrics account transparently for unfinished processes via penalized turnaround, standardized random seeds ensure paired workload equivalence, and statistical uncertainty is reported with 95% confidence intervals.
                   </p>
                 </div>
 
@@ -112,28 +131,28 @@ export default function ResearchReports() {
                 <div className="p-4 bg-[#101416] rounded-xl border border-[#303A40]/80 space-y-3">
                   <h3 className="text-sm font-semibold text-[#60A5FA] flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-[#60A5FA]" />
-                    <span>Key Empirical Takeaways</span>
+                    <span>Key Empirical Takeaways (Canonical Evaluation)</span>
                   </h3>
                   <ul className="space-y-2 text-xs text-[#F3F4F6]">
                     <li className="flex items-start gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#60A5FA] mt-1.5 shrink-0" />
-                      <span>All six baselines achieve 100.0% completion rate under steady_state workloads.</span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#2DD4BF] mt-1.5 shrink-0" />
+                      <span><strong>Rank 1 — Improved RL (Candidate F):</strong> Achieves highest overall composite score (85.81 ± 0.98) with 95.3% completion rate and 39.8 ticks penalized turnaround across all 6 workloads.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#F472B6] mt-1.5 shrink-0" />
+                      <span><strong>Rank 2 — CoReOS (Candidate G):</strong> Achieves 84.87 ± 0.98 composite score, 95.9% completion rate, and lowest overall thrashing (0.13 ticks mean, 99.7% reduction under adversarial stress).</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#94A3B8] mt-1.5 shrink-0" />
+                      <span><strong>Rank 3 — Original RL (Candidate H):</strong> Achieves 82.26 ± 1.10 composite score with 90.8% completion rate.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#A78BFA] mt-1.5 shrink-0" />
+                      <span><strong>Baselines A–E:</strong> ConflictNoHealing (80.89), CoordNoConflict (80.82), Conventional (80.60), Independent Agents (79.79), and Baseline CoReOS (80.84).</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#34D399] mt-1.5 shrink-0" />
-                      <span>Adversarial stress significantly differentiates architectural approaches.</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#34D3E9] mt-1.5 shrink-0" />
-                      <span>CoReOS reduces mean turnaround time by 36.7% – 65.0% across workloads.</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#FBBF24] mt-1.5 shrink-0" />
-                      <span>Self-healing mechanisms effectively mitigate thrashing and resource conflicts.</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#C084FC] mt-1.5 shrink-0" />
-                      <span>The learning-based variant (F) achieves the best overall performance.</span>
+                      <span><strong>Evaluation Protocol:</strong> Exactly 1,440 trials (8 candidates × 6 workloads × 30 seeds) with 300-tick evaluation horizon, zero seed overlap, and frozen composite scoring formula.</span>
                     </li>
                   </ul>
                 </div>
@@ -158,7 +177,7 @@ export default function ResearchReports() {
                     </div>
                     <div className="p-3 bg-[#101416]/60 rounded-lg border border-[#303A40]/40">
                       <div className="font-semibold text-[#60A5FA] mb-1">RQ4: Computational Overhead</div>
-                      <div>Confirms decision overhead remains below 0.09 ms per scheduling cycle for real-time viability.</div>
+                      <div>Confirms decision overhead remains well below real-time operational boundaries across all candidates.</div>
                     </div>
                   </div>
                 </div>
@@ -168,7 +187,7 @@ export default function ResearchReports() {
             {activeTab === 'Detailed Analysis' && (
               <div className="space-y-4">
                 <h2 className="text-lg font-bold text-[#F3F4F6]">
-                  Detailed Benchmark & Component Ablation Analysis
+                  Phase 8 Final Benchmark Competition Report
                 </h2>
                 {analysisContent ? (
                   <div
@@ -227,7 +246,7 @@ export default function ResearchReports() {
                   </div>
                 ) : (
                   <div className="text-xs text-[#717B86] py-6">
-                    No ablation metrics available.
+                    Ablation telemetry not available for this evaluation.
                   </div>
                 )}
               </div>
@@ -236,7 +255,7 @@ export default function ResearchReports() {
             {activeTab === 'Discussion & Conclusions' && (
               <div className="space-y-4">
                 <h2 className="text-lg font-bold text-[#F3F4F6]">
-                  Discussion & Conclusions
+                  Phase 9 Independent Final Audit Report
                 </h2>
                 {researchContent ? (
                   <div
@@ -255,61 +274,110 @@ export default function ResearchReports() {
 
         {/* Right Column (Download Cards & Metadata) */}
         <div className="lg:col-span-3 space-y-6">
-          {/* Download Reports Card */}
-          <Card title="Download Reports">
+          {/* Final Canonical Datasets Card */}
+          <Card title="Final Canonical Datasets">
             <div className="space-y-2.5 py-1">
               <button
-                onClick={() => handleDownload('research_report.md')}
+                onClick={() => handleDownload('final_canonical_optimization_report.md')}
                 className="w-full flex items-center gap-3 p-2.5 rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] text-white transition-colors text-xs font-medium text-left shadow-sm"
               >
                 <FileText className="w-4 h-4 shrink-0 text-white" />
-                <span className="truncate">Full Research Report (PDF)</span>
+                <span className="truncate">Final Optimization Report (MD)</span>
               </button>
 
               <button
-                onClick={() => handleDownload('benchmark_results.csv')}
+                onClick={() => handleDownload('final_canonical_benchmark_results.csv')}
+                className="w-full flex items-center gap-3 p-2.5 rounded-lg bg-[#101416] hover:bg-[#20262B] border border-[#303A40] text-[#F3F4F6] transition-colors text-xs font-medium text-left"
+              >
+                <TableIcon className="w-4 h-4 shrink-0 text-[#2DD4BF]" />
+                <span className="truncate">Canonical Results (1,440 Trials CSV)</span>
+              </button>
+
+              <button
+                onClick={() => handleDownload('final_canonical_ranking_summary.csv')}
                 className="w-full flex items-center gap-3 p-2.5 rounded-lg bg-[#101416] hover:bg-[#20262B] border border-[#303A40] text-[#F3F4F6] transition-colors text-xs font-medium text-left"
               >
                 <TableIcon className="w-4 h-4 shrink-0 text-[#60A5FA]" />
-                <span className="truncate">Benchmark Results (CSV)</span>
+                <span className="truncate">Canonical Ranking Summary (CSV)</span>
               </button>
 
               <button
-                onClick={() => handleDownload('benchmark_summary.csv')}
+                onClick={() => handleDownload('final_canonical_per_workload_summary.csv')}
                 className="w-full flex items-center gap-3 p-2.5 rounded-lg bg-[#101416] hover:bg-[#20262B] border border-[#303A40] text-[#F3F4F6] transition-colors text-xs font-medium text-left"
               >
-                <Archive className="w-4 h-4 shrink-0 text-[#34D3E9]" />
-                <span className="truncate">Simulation Logs (ZIP)</span>
+                <TableIcon className="w-4 h-4 shrink-0 text-[#F472B6]" />
+                <span className="truncate">Per-Workload Summary (CSV)</span>
               </button>
 
               <button
-                onClick={() => handleDownload('paired_comparisons.csv')}
+                onClick={() => handleDownload('final_canonical_statistical_comparisons.csv')}
                 className="w-full flex items-center gap-3 p-2.5 rounded-lg bg-[#101416] hover:bg-[#20262B] border border-[#303A40] text-[#F3F4F6] transition-colors text-xs font-medium text-left"
               >
-                <BarChart3 className="w-4 h-4 shrink-0 text-[#FBBF24]" />
-                <span className="truncate">Figures & Charts (ZIP)</span>
+                <TableIcon className="w-4 h-4 shrink-0 text-[#34D399]" />
+                <span className="truncate">Statistical Comparisons (CSV)</span>
+              </button>
+
+              <button
+                onClick={() => handleDownload('final_canonical_reproducibility.md')}
+                className="w-full flex items-center gap-2.5 p-2 rounded-lg bg-[#101416] hover:bg-[#20262B] border border-[#303A40]/80 text-[#A1A1AA] transition-colors text-[11px] font-medium text-left"
+              >
+                <FileText className="w-3.5 h-3.5 shrink-0 text-[#A78BFA]" />
+                <span className="truncate">Reproducibility Record (MD)</span>
+              </button>
+            </div>
+          </Card>
+
+          {/* Historical Datasets Card */}
+          <Card title="Historical Experiments (Phases 1–9)">
+            <div className="space-y-2 py-1">
+              <button
+                onClick={() => handleDownload('phase8_final_benchmark_results.csv')}
+                className="w-full flex items-center gap-2.5 p-2 rounded-lg bg-[#101416] hover:bg-[#20262B] border border-[#303A40]/60 text-[#A1A1AA] transition-colors text-[11px] font-medium text-left"
+              >
+                <Archive className="w-3.5 h-3.5 shrink-0 text-[#717B86]" />
+                <span className="truncate">Phase 8 Trials (1,440 CSV)</span>
+              </button>
+
+              <button
+                onClick={() => handleDownload('phase9_final_audit_report.md')}
+                className="w-full flex items-center gap-2.5 p-2 rounded-lg bg-[#101416] hover:bg-[#20262B] border border-[#303A40]/60 text-[#A1A1AA] transition-colors text-[11px] font-medium text-left"
+              >
+                <FileText className="w-3.5 h-3.5 shrink-0 text-[#717B86]" />
+                <span className="truncate">Phase 9 Audit Report (MD)</span>
+              </button>
+
+              <button
+                onClick={() => handleDownload('phase3_benchmark_results.csv')}
+                className="w-full flex items-center gap-2.5 p-2 rounded-lg bg-[#101416] hover:bg-[#20262B] border border-[#303A40]/60 text-[#A1A1AA] transition-colors text-[11px] font-medium text-left"
+              >
+                <Archive className="w-3.5 h-3.5 shrink-0 text-[#717B86]" />
+                <span className="truncate">Phase 3 Raw Results (CSV)</span>
               </button>
             </div>
           </Card>
 
           {/* Report Metadata Card */}
-          <Card title="Report Metadata">
+          <Card title="Competition Metadata">
             <div className="space-y-2.5 text-xs">
               <div className="flex justify-between items-center py-1 border-b border-[#303A40]/40">
-                <span className="text-[#717B86]">Generated On</span>
-                <span className="text-[#F3F4F6] font-medium">Oct 10, 2026</span>
+                <span className="text-[#717B86]">Completed On</span>
+                <span className="text-[#F3F4F6] font-medium">Oct 13, 2026</span>
               </div>
               <div className="flex justify-between items-center py-1 border-b border-[#303A40]/40">
-                <span className="text-[#717B86]">Version</span>
-                <span className="text-[#34D399] font-medium font-mono">v1.0</span>
+                <span className="text-[#717B86]">Evaluation Phase</span>
+                <span className="text-[#34D399] font-medium font-mono">Final Canonical</span>
               </div>
               <div className="flex justify-between items-center py-1 border-b border-[#303A40]/40">
-                <span className="text-[#717B86]">Workloads</span>
-                <span className="text-[#F3F4F6] font-medium">6</span>
+                <span className="text-[#717B86]">Candidates</span>
+                <span className="text-[#F3F4F6] font-medium">8 Evaluated</span>
+              </div>
+              <div className="flex justify-between items-center py-1 border-b border-[#303A40]/40">
+                <span className="text-[#717B86]">Total Trials</span>
+                <span className="text-[#F3F4F6] font-medium">1,440 Matched</span>
               </div>
               <div className="flex justify-between items-center py-1">
-                <span className="text-[#717B86]">Baselines</span>
-                <span className="text-[#F3F4F6] font-medium">6</span>
+                <span className="text-[#717B86]">Top 2 Standings</span>
+                <span className="text-[#2DD4BF] font-semibold text-right">#1 F_ImprovedRL (85.81)<br />#2 CoReOS (84.87)</span>
               </div>
             </div>
           </Card>

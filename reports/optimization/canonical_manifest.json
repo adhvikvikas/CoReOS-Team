@@ -1,0 +1,99 @@
+{
+  "benchmark_version": "Final Master Canonical (Phase 10 Optimization)",
+  "timestamp_utc": "2026-10-13T16:30:12Z",
+  "total_trials": 1440,
+  "total_candidates": 8,
+  "total_workloads": 6,
+  "held_out_seeds": [
+    5001,
+    5002,
+    5003,
+    5004,
+    5005,
+    5006,
+    5007,
+    5008,
+    5009,
+    5010,
+    5011,
+    5012,
+    5013,
+    5014,
+    5015,
+    5016,
+    5017,
+    5018,
+    5019,
+    5020,
+    5021,
+    5022,
+    5023,
+    5024,
+    5025,
+    5026,
+    5027,
+    5028,
+    5029,
+    5030
+  ],
+  "horizon_steps": 300,
+  "canonical_files": {
+    "raw_trials_csv": "reports/optimization/final_canonical_benchmark_results.csv",
+    "ranking_summary_csv": "reports/optimization/final_canonical_ranking_summary.csv",
+    "per_workload_summary_csv": "reports/optimization/final_canonical_per_workload_summary.csv",
+    "statistical_comparisons_csv": "reports/optimization/final_canonical_statistical_comparisons.csv",
+    "guardrail_compliance_csv": "reports/optimization/final_canonical_guardrail_compliance.csv",
+    "optimization_report_md": "reports/optimization/final_canonical_optimization_report.md",
+    "reproducibility_md": "reports/optimization/final_canonical_reproducibility.md"
+  },
+  "top_rankings": [
+    {
+      "rank": 1,
+      "candidate": "F_ImprovedRL",
+      "composite_score_mean": 85.81,
+      "composite_score_ci95": 1.53
+    },
+    {
+      "rank": 2,
+      "candidate": "G_ChampionCoReOS",
+      "composite_score_mean": 84.87,
+      "composite_score_ci95": 1.35
+    },
+    {
+      "rank": 3,
+      "candidate": "H_OriginalRL",
+      "composite_score_mean": 82.17,
+      "composite_score_ci95": 2.29
+    },
+    {
+      "rank": 4,
+      "candidate": "D_ConflictNoHealing",
+      "composite_score_mean": 75.47,
+      "composite_score_ci95": 3.06
+    },
+    {
+      "rank": 5,
+      "candidate": "E_CompleteCoReOS",
+      "composite_score_mean": 75.46,
+      "composite_score_ci95": 3.07
+    },
+    {
+      "rank": 6,
+      "candidate": "C_CoordNoConflict",
+      "composite_score_mean": 75.18,
+      "composite_score_ci95": 3.13
+    },
+    {
+      "rank": 7,
+      "candidate": "A_Conventional",
+      "composite_score_mean": 74.29,
+      "composite_score_ci95": 3.45
+    },
+    {
+      "rank": 8,
+      "candidate": "B_IndependentAgents",
+      "composite_score_mean": 74.29,
+      "composite_score_ci95": 3.3
+    }
+  ]
+}

@@ -200,6 +200,17 @@ class ExperimentSuite:
         overhead_ms = (time.perf_counter() - t0) * 1000.0 / max(1, step_i)
         return compute_simulation_metrics(sim.completed_processes, sim.history, overhead_ms, total_processes=len(workload))
 
+    def run_baseline_g_champion(
+        self,
+        processes,
+        seed: Optional[int] = None,
+        max_steps: int = 300
+    ) -> Dict[str, Any]:
+        """Baseline G: Champion CoReOS (Optimized Adaptive Progress-Aware Multi-Agent Architecture)."""
+        from src.coreos.optimization.candidates import ChampionCoReOS
+        champ = ChampionCoReOS(self.config)
+        return champ.run_simulation(processes, seed=seed, max_steps=max_steps)
+
     def run_benchmark_suite(
         self,
         workload_types: Optional[List[str]] = None,
@@ -242,6 +253,7 @@ class ExperimentSuite:
                         "unfinished_processes": m["unfinished_processes"],
                         "completion_rate": m["completion_rate"],
                         "avg_turnaround_time": m["avg_turnaround_time"],
+                        "penalized_turnaround_time": m.get("penalized_turnaround_time", m["avg_turnaround_time"]),
                         "p95_turnaround_time": m["p95_turnaround_time"],
                         "avg_waiting_time": m["avg_waiting_time"],
                         "avg_response_time": m["avg_response_time"],
